@@ -16,7 +16,7 @@
    [:head
     metas
     [:title "FIXME: I have no title"]
-    #_(include-css "")
+    (include-css "out/compiled.css")
     [:body
      [:noscript
       [:p [:b "This is a JavaScript app. Please enable JavaScript to continue."]]]

@@ -19,7 +19,7 @@
 (def app
   (ring/ring-handler
    (ring/router
-    [["/index.html" {:get {:handler
+    [["/" {:get {:handler
                            (fn [_]
                              {:status 200
                               :body (index-page)})}}]

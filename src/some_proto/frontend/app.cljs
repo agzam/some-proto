@@ -13,7 +13,7 @@
     (enable-console-print!)))
 
 (defn root-view []
-  [:div
+  [:div {:class '[bg-amber-200]}
    [:h1 "Here will be dragons"]])
 
 (defonce root (createRoot (js/document.getElementById "app")))
