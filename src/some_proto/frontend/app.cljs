@@ -1,10 +1,9 @@
 (ns some-proto.frontend.app
   (:require
    ["react-dom/client" :refer [createRoot]]
+   [re-frame.core :as rf :refer [subscribe]]
    [reagent.core :as r]
-   [re-frame.core :as rf]
-   ;; [reagent.dom :as re-dom]
-   ))
+   [some-proto.frontend.routing :as routing]))
 
 (def debug? ^boolean goog.DEBUG)
 
@@ -13,13 +12,15 @@
     (enable-console-print!)))
 
 (defn root-view []
-  [:div {:class '[bg-amber-200]}
-   [:h1 "Here will be dragons"]])
+  (let [current-route @(subscribe [:current-route])]
+    [:div (when current-route
+            (-> current-route :data :view))]))
 
 (defonce root (createRoot (js/document.getElementById "app")))
 
 (defn ^:dev/after-load re-render []
   (rf/clear-subscription-cache!)
+  (routing/init-routes!)
   (.render root (r/as-element [root-view])))
 
 (defn ^:export init []
