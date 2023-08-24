@@ -2,7 +2,6 @@
   (:require [clojure.edn :as edn]
             [clojure.java.io :as io]
             [clojure.tools.cli :as cli]
-            [some-proto.backend.index-page :refer [index-page]]
             [clojure.tools.logging :as log]
             [integrant.core :as ig]
             [muuntaja.core :as m]
@@ -12,17 +11,19 @@
             [reitit.ring.middleware.exception :as exception]
             [reitit.ring.middleware.muuntaja :as muuntaja]
             [reitit.ring.middleware.parameters :as parameters]
-            [ring.adapter.jetty :as jetty])
+            [ring.adapter.jetty :as jetty]
+            [some-proto.backend.index-page :refer [index-page]]
+            [some-proto.backend.search-hn :as search-hn])
   (:import [org.eclipse.jetty.server Server])
   (:gen-class))
 
 (def app
   (ring/ring-handler
    (ring/router
-    [["/" {:get {:handler
-                           (fn [_]
-                             {:status 200
-                              :body (index-page)})}}]
+    [["/" {:get {:handler (fn [_]
+                            {:status 200
+                             :body (index-page)})}}]
+     ["/search-hn" {:get search-hn/handler}]
      ["/status"
       {:get {:handler (constantly
                        {:status 200

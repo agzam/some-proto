@@ -14,7 +14,7 @@
 (defn root-view []
   (let [current-route @(subscribe [:current-route])]
     [:div (when current-route
-            (-> current-route :data :view))]))
+            [(-> current-route :data :view)])]))
 
 (defonce root (createRoot (js/document.getElementById "app")))
 

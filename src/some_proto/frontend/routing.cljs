@@ -9,13 +9,13 @@
    [reitit.frontend]
    [reitit.frontend.controllers :as rfc]
    [reitit.frontend.easy :as rfe]
-   [schema.core :as s]))
+   [some-proto.frontend.hn-search :as hn-search]))
 
 (def routes
   [""
    ["/"
     {:name :routes/root
-     :view [:h1 "ROOT"]
+     :view hn-search/view
      :controllers [{:start (fn [] (println "entering root route"))
                     :stop (fn [] (println "leaving root route"))}]}]])
 
