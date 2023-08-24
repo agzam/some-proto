@@ -1,0 +1,11 @@
+{:deps true
+ :builds
+ {:app {:output-dir "resources/public/out"
+        :asset-path "out"
+        :target :browser
+        :modules {:app {:init-fn some-proto.frontend.app/init}}
+        :devtools
+        {:after-load some-proto.frontend.app/re-render
+         :repl-init-ns some-proto.frontend.app}
+        :dev {}}}
+ :nrepl {:port 8777}}
