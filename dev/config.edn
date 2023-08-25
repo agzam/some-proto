@@ -1,1 +1,5 @@
-{:some-proto.backend.system/server {:port 3003 :join? false}}
+{:some-proto.backend.system/server {:port 3003 :join? false}
+
+ :some-proto.backend.chatgpt/parameters
+ {:model "gpt-3.5-turbo"
+  :temperature 0.8}}

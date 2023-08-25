@@ -1,5 +1,6 @@
 (ns some-proto.backend.search-hn
-  (:require [clj-http.client :as client]))
+  (:require
+   [clj-http.client :as client]))
 
 (defn handler [request]
   (let [term (get-in request [:query-params "term"])
