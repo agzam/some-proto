@@ -3,6 +3,8 @@
    [re-frame.core :as rf :refer [dispatch
                                  reg-event-fx
                                  reg-event-db
+                                 reg-sub
+                                 subscribe
                                  inject-cofx]]
    [some-proto.frontend.http-xhrio]
    [vimsical.re-frame.cofx.inject :as inject]))
@@ -17,7 +19,9 @@
 
 (reg-event-db ::search-hn-success
   (fn [db [_ data]]
-    (js-debugger)))
+    (assoc db ::hn-data data)))
+
+(reg-sub ::hn-data #(get % ::hn-data))
 
 (defn title []
   [:h1 {:class '[m-20]}
@@ -62,7 +66,40 @@
       :type "submit"}
      "Search"]]])
 
+(defn hn-data-row [{:keys [title
+                           url
+                           objectID]}]
+  [:tr {:class '[bg-white border-b
+                 "dark:bg-gray-800"
+                 "dark:border-gray-700"]}
+   [:td {:class '[px-6 py-4]}
+    title]
+   [:td [:a {:href url} "URL"]]
+   [:td [:a {:href
+             (str "https://news.ycombinator.com/item?id=" objectID)}
+         "HN"]]])
+
+(defn results-table []
+  (let [data @(subscribe [::hn-data])]
+    [:div {:class '[relative overflow-x-auto m-20]}
+     [:table {:class '[table w-full text-sm text-left
+                       text-gray-500
+                       "dark:text-gray-400"]}
+      [:thead {:class '[text-xs text-gray-700
+                        uppercase bg-gray-50
+                        "dark:bg-gray-700"
+                        "dark:text-gray-400"]}
+       [:tr
+        [:th {:class '[px-6 py-3] :scope :col} "Title"]
+        [:th {:class '[px-6 py-3] :scope :col} ""]
+        [:th {:class '[px-6 py-3] :scope :col} ""]]]
+      [:tbody
+       (for [{:keys [objectID] :as row} data]
+         ^{:key objectID}
+         [hn-data-row row])]]]))
+
 (defn view []
   [:div
    [title]
-   [search-bar]])
+   [search-bar]
+   [results-table]])
