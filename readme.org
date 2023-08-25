@@ -1,0 +1,38 @@
+#+title: Simple Clojurescript Web App
+
+This is just a simple Clojurescript app with:
+
+- Shadow-cljs
+- Integrant
+- Re-frame
+- Reitit
+- Tailwind CSS
+
+* To run locally
+** Prerequisites
+- Clojure CLI
+- Node.js ver >= 18
+
+#+begin_src sh :results verbatim
+npm install
+#+end_src
+
+#+begin_src
+clojure -A:backend:frontend:dev
+#+end_src
+
+Once in the REPL, type:
+
+#+begin_src clojure
+(reset) ;; or (go)
+#+end_src
+That should force Integrant to start the system: run the jetty server, start postcss and shadowcljs watchers.
+
+The server would be running on port 3003
+
+#+begin_src
+open http://localhost:3003
+#+end_src
+
+** For Emacs
+Simply cider-jack-in normally. Optionally can ~cider-jack-in-clj&cljs~ for two REPLS. In Clojure REPL, run ~(reset)~

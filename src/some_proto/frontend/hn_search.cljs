@@ -1,5 +1,6 @@
 (ns some-proto.frontend.hn-search
   (:require
+   [clojure.string :as str]
    [re-frame.core :as rf :refer [dispatch
                                  reg-event-fx
                                  reg-event-db
@@ -11,11 +12,16 @@
 
 (reg-event-fx ::search-hn
   (fn [{:keys [db]} [_ val]]
-    {:db (assoc db ::current-search-term val)
-     :http-xhrio+ {:uri "/search-hn"
-                   :params {:term val}
-                   :on-failure [::search-hn-failure]
-                   :on-success [::search-hn-success]}}))
+    (js/console.log val)
+    (cond-> {:db (assoc db ::current-search-term val
+                        ::hn-data nil)}
+
+      (not (str/blank? val))
+      (merge
+       {:http-xhrio+ {:uri "/search-hn"
+                      :params {:term val}
+                      :on-failure [::search-hn-failure]
+                      :on-success [::search-hn-success]}}))))
 
 (reg-event-db ::search-hn-success
   (fn [db [_ data]]
@@ -80,7 +86,7 @@
          "HN"]]])
 
 (defn results-table []
-  (let [data @(subscribe [::hn-data])]
+  (when-let [data @(subscribe [::hn-data])]
     [:div {:class '[relative overflow-x-auto m-20]}
      [:table {:class '[table w-full text-sm text-left
                        text-gray-500
