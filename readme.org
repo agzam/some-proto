@@ -2,7 +2,7 @@
 
 This is just a simple ClojureScript app, built for my own amusement and experimentation. It's a showcase with a single page that allows you to search for stories posted on Hacker News, and obtain a summary (using ChatGPT API) about the content as well as the discussion on HN.
 
-[[https://imgur.com/a/gY3wsYd]]
+[[https://i.imgur.com/T8q6K0n.png]]
 
 
 * To run locally
