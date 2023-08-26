@@ -1,17 +1,13 @@
 #+title: Simple Clojurescript Web App
 
-This is just a simple Clojurescript app with:
+This is just a simple ClojureScript app, built for my own amusement and experimentation. It's a showcase with a single page that allows you to search for stories posted on Hacker News, and obtain a summary (using ChatGPT API) about the content as well as the discussion on HN.
 
-- Shadow-cljs
-- Integrant
-- Re-frame
-- Reitit
-- Tailwind CSS
 
 * To run locally
 ** Prerequisites
 - Clojure CLI
 - Node.js ver >= 18
+- OpenAI personal token
 
 #+begin_src sh :results verbatim
 npm install
@@ -33,6 +29,20 @@ The server would be running on port 3003
 #+begin_src
 open http://localhost:3003
 #+end_src
+
+** For ChatGPT feature to work
+- Obtain OpenAI token
+- add ~./resources/creds.gpg~ (it should be encrypted with your default GPG key) in the following format:
+
+#+begin_src clojure
+{:open-ai-key "YOUR-OPEN-AI-TOKEN"}
+#+end_src
+
+To test if it was correctly encrypted, you can run:
+#+begin_src sh :results verbatim
+$(which gpg2) -q --for-your-eyes-only --no-tty -d resources/creds.gpg
+#+end_src
+
 
 ** For Emacs
 Simply cider-jack-in normally.
