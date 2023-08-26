@@ -13,7 +13,6 @@
 
 (reg-event-fx ::hn-search
   (fn [{:keys [db]} [_ val]]
-    (js/console.log val)
     (cond-> {:db (assoc db ::current-search-term val
                         ::hn-data nil)}
 
@@ -29,6 +28,30 @@
     (assoc db ::hn-data data)))
 
 (reg-sub ::hn-data #(get % ::hn-data))
+
+(reg-event-fx ::make-summary
+  (fn [{:keys [db]} [_ {:keys [objectID] :as hn-item}]]
+    {:db (assoc db ::highlighted-row objectID)
+     :http-xhrio+ {:method :post
+                   :uri "/make-summary"
+                   :params {:hn-item hn-item}
+                   :on-failure [::make-summary-failure]
+                   :on-success [::make-summary-success]}}))
+
+(reg-event-db ::make-summary-failure
+  (fn [db [_ data]]
+    (js-debugger)
+    (dissoc db ::highlighted-row)))
+
+(reg-event-db ::make-summary-success
+  (fn [db [_ {:keys [summary objectID]}]]
+    (-> db (dissoc ::highlighted-row)
+        (assoc ::current-summary
+               {:objectID objectID
+                :summary summary}))))
+
+(reg-sub ::highlighted-row #(get % ::highlighted-row))
+(reg-sub ::current-summary #(get % ::current-summary))
 
 (defn title []
   [:h1 {:class '[m-20]}
@@ -85,22 +108,46 @@
        :target :_blank}
    [icons/hyperlink {:width 16}]])
 
+(defn summary-card [currentID]
+  (let [{:keys [summary
+                objectID]} @(subscribe [::current-summary])]
+    (when (= currentID objectID)
+     [:tr
+      [:td {:class '[px-6 py-4]
+            :col-span 4}
+       [:h2 summary]]])))
+
 (defn hn-data-row [{:keys [title
                            url
                            objectID
-                           created_at]}]
-  [:tr {:class '[bg-white border-b
-                 "dark:bg-gray-800"
-                 "dark:border-gray-700"]}
-   [:td {:class '[pl-3]}
-    (subs created_at 0 10)]
-   [:td {:class '[px-6 py-4]}
-    title]
-   [:td
-    [:span {:class '[inline-flex
-                     items-center]}
-     [hn-url-btn objectID]
-     [url-btn url]]]])
+                           created_at
+                           num_comments]
+                    :as hn-item}]
+  (let [highlighted? (-> @(subscribe [::highlighted-row])
+                         (= objectID))]
+    [:<>
+     [:tr {:class (cond-> '[bg-white border-b]
+                    highlighted?
+                    (concat '[bg-gradient-to-r
+                              from-white
+                              via-orange-500
+                              to-white
+                              hn-row-bg-animate]))}
+      [:td {:class '[pl-3]}
+       (subs created_at 0 10)]
+      [:td {:class '[px-6 py-4
+                     cursor-pointer]
+            :on-click #(dispatch [::make-summary hn-item])}
+       title]
+      [:td {:class '[px-6 py-4]}
+       (when (pos? num_comments)
+         num_comments)]
+      [:td
+       [:span {:class '[inline-flex
+                        items-center]}
+        [hn-url-btn objectID]
+        [url-btn url]]]]
+     [summary-card objectID]]))
 
 (defn results-table []
   (when-let [data @(subscribe [::hn-data])]
@@ -115,6 +162,7 @@
        [:tr
         [:th {:class '[pl-3] :scope :col} "Date"]
         [:th {:class '[px-6 py-3] :scope :col} "Title"]
+        [:th {:class '[px-6 py-3] :scope :col} "Comments"]
         [:th {:class '[px-6 py-3] :scope :col} ""]]]
       [:tbody
        (for [{:keys [objectID] :as row} data]

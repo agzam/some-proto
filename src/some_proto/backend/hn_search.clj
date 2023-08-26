@@ -24,4 +24,5 @@
             (mapv #(select-keys % [:objectID
                                    :title
                                    :url
-                                   :created_at])))}))
+                                   :created_at
+                                   :num_comments])))}))

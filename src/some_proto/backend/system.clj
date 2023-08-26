@@ -12,8 +12,9 @@
             [reitit.ring.middleware.muuntaja :as muuntaja]
             [reitit.ring.middleware.parameters :as parameters]
             [ring.adapter.jetty :as jetty]
-            [some-proto.backend.index-page :refer [index-page]]
-            [some-proto.backend.hn-search :as hn-search])
+            [some-proto.backend.chatgpt :as chatgpt]
+            [some-proto.backend.hn-search :as hn-search]
+            [some-proto.backend.index-page :refer [index-page]])
   (:import [org.eclipse.jetty.server Server])
   (:gen-class))
 
@@ -24,6 +25,12 @@
                             {:status 200
                              :body (index-page)})}}]
      ["/hn-search" {:get hn-search/handler}]
+     ["/make-summary" {:post
+                       (fn [req]
+                         (let [{:keys [objectID] :as hn} (get-in req [:body-params :hn-item])]
+                           {:status 200
+                            :body {:objectID objectID
+                                   :summary (chatgpt/make-summary hn)}}))}]
      ["/status"
       {:get {:handler (constantly
                        {:status 200

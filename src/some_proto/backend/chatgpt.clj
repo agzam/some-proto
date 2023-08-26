@@ -4,7 +4,10 @@
    [clj-http.client :as client]
    [clojure.edn :as edn]
    [clojure.java.shell :refer [sh]]
-   [integrant.core :as ig]))
+   [clojure.string :as str]
+   [integrant.core :as ig]
+   [some-proto.backend.html :refer [fetch-page-content]])
+  (:import [java.util StringTokenizer]))
 
 (def auth-key (atom nil))
 (def openai-parameters (atom nil))
@@ -45,4 +48,74 @@
                         :content content}]})
           :oauth-token @auth-key})]
     (some->> res :body :choices first :message :content)))
+
+
+(defn abbreviate
+  "Reduces given text by removing from its end, until it contains no more than max-tokens."
+  [text max-tokens]
+  (loop [txt text]
+    (let [tokens (-> (StringTokenizer. txt)
+                     (.countTokens))]
+      (if (<= tokens max-tokens)
+        txt
+        ;; TODO: This is kinda lame, iterate with tokenizer instead, this tranformation is not lossless
+        (let [new-txt (->> (str/split txt #"\W+")
+                           butlast
+                           (str/join " "))]
+          (recur new-txt))))))
+
+(defn trim-tokens
+  "Number of allowed tokens in the prompt can exceed the max allowed.
+  Let's try to reduce number of tokens by reducing content to be sent with the prompt."
+  [max-tokens prompt-template page-content hn-comments]
+  (let [template-size (-> (StringTokenizer. prompt-template)
+                          (.countTokens))
+        ;; TODO: this is not great, need to figure out better way
+        max-possible (if hn-comments
+                       (quot (- max-tokens template-size) 2)
+                       (- max-tokens template-size))]
+    (format
+     prompt-template
+     (abbreviate page-content max-possible)
+     (when hn-comments
+       (abbreviate hn-comments max-possible)))))
+
+(defn make-summary
+  [{:keys [objectID
+           url
+           title
+           num_comments]}]
+  (let [page-content (fetch-page-content url)
+        comments? (< 2 num_comments)
+        hn-comments (when comments?
+                      (fetch-page-content
+                       (format
+                        "https://news.ycombinator.com/item?id=%s" objectID)))
+        prompt-template (str
+                         "Summarize information for the page: "
+                         url
+                         "Based on the title of the page: "
+                         title
+                         " and its content:\n"
+                         "--- begin content ---\n%s"
+                         "\n--- end content ---"
+                         (when comments?
+                           (str "Additionally, summarize the discussion on Hackernews:\n"
+                                "--- begin NH comments---\n%s"
+                                "\n--- end HN comments ---")))
+        final-prompt (trim-tokens
+                      3500
+                      prompt-template
+                      page-content
+                      (when comments?
+                        hn-comments))]
+    (send final-prompt)))
+
+(comment
+  (make-summary
+   {:objectID "37268750",
+    :title "Crypto Startup Bankrupt After Losing Password to $38.9M Crypto Wallet",
+    :url "https://www.404media.co/crypto-startup-prime-trust-files-for-bankruptcy-after-losing-password-to-38-9-million-crypto-wallet/",
+    :num_comments 5,
+    :created_at "2023-08-26T00:35:06.000Z"}))
 
