@@ -35,4 +35,15 @@ open http://localhost:3003
 #+end_src
 
 ** For Emacs
-Simply cider-jack-in normally. Optionally can ~cider-jack-in-clj&cljs~ for two REPLS. In Clojure REPL, run ~(reset)~
+Simply cider-jack-in normally.
+Optionally can ~cider-jack-in-clj&cljs~ for two REPLS.
+In Clojure REPL, run ~(reset)~
+
+There's ~.dir-locals.el~ file that properly sets the aliases and other variables. If CIDER prompts to choose either clojure-cli or shadow-cljs, that would mean that the dir local vars aren't properly set. The dependencies in that case won't properly load since we need to use aliases.
+The only guaranteed way in that case is to try to restart Emacs and open deps.edn again. Emacs typically would prompt asking if it is safe to set dir local vars for this project.
+In the case when you want your own project local customizations, you can create [[https://www.gnu.org/software/emacs/manual/html_node/emacs/Directory-Variables.html][.dir-locals-2.el]]. It would be git-ignored.
+For example, you may want to automatically start the app by initializing the Integrant system. In that case you can add .dir-locals-2.el file with the following content:
+
+#+begin_src emacs-lisp
+((nil . ((cider-repl-init-code . ("(require '[integrant.repl :refer [go]]) (go)")))))
+#+end_src

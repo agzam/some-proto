@@ -8,9 +8,10 @@
                                  subscribe
                                  inject-cofx]]
    [some-proto.frontend.http-xhrio]
+   [some-proto.frontend.svg-icons :as icons]
    [vimsical.re-frame.cofx.inject :as inject]))
 
-(reg-event-fx ::search-hn
+(reg-event-fx ::hn-search
   (fn [{:keys [db]} [_ val]]
     (js/console.log val)
     (cond-> {:db (assoc db ::current-search-term val
@@ -18,12 +19,12 @@
 
       (not (str/blank? val))
       (merge
-       {:http-xhrio+ {:uri "/search-hn"
+       {:http-xhrio+ {:uri "/hn-search"
                       :params {:term val}
-                      :on-failure [::search-hn-failure]
-                      :on-success [::search-hn-success]}}))))
+                      :on-failure [::hn-search-failure]
+                      :on-success [::hn-search-success]}}))))
 
-(reg-event-db ::search-hn-success
+(reg-event-db ::hn-search-success
   (fn [db [_ data]]
     (assoc db ::hn-data data)))
 
@@ -58,7 +59,7 @@
                "dark:focus:border-orange-500"]
       :type "search"
       :placeholder "Search term"
-      :on-change #(dispatch [::search-hn (-> % .-target .-value)])}]
+      :on-change #(dispatch [::hn-search (-> % .-target .-value)])}]
     [:button
      {:class '[text-white absolute right-2 5 bottom-2 5 bg-orange-500
                font-medium text-sm px-4 py-2
@@ -72,18 +73,34 @@
       :type "submit"}
      "Search"]]])
 
+(defn hn-url-btn [objectID]
+  [:a {:href (str
+              "https://news.ycombinator.com/item?id="
+              objectID)
+       :target :_blank}
+   [icons/hackernews {:width 32}]])
+
+(defn url-btn [url]
+  [:a {:href url
+       :target :_blank}
+   [icons/hyperlink {:width 16}]])
+
 (defn hn-data-row [{:keys [title
                            url
-                           objectID]}]
+                           objectID
+                           created_at]}]
   [:tr {:class '[bg-white border-b
                  "dark:bg-gray-800"
                  "dark:border-gray-700"]}
+   [:td {:class '[pl-3]}
+    (subs created_at 0 10)]
    [:td {:class '[px-6 py-4]}
     title]
-   [:td [:a {:href url} "URL"]]
-   [:td [:a {:href
-             (str "https://news.ycombinator.com/item?id=" objectID)}
-         "HN"]]])
+   [:td
+    [:span {:class '[inline-flex
+                     items-center]}
+     [hn-url-btn objectID]
+     [url-btn url]]]])
 
 (defn results-table []
   (when-let [data @(subscribe [::hn-data])]
@@ -96,8 +113,8 @@
                         "dark:bg-gray-700"
                         "dark:text-gray-400"]}
        [:tr
+        [:th {:class '[pl-3] :scope :col} "Date"]
         [:th {:class '[px-6 py-3] :scope :col} "Title"]
-        [:th {:class '[px-6 py-3] :scope :col} ""]
         [:th {:class '[px-6 py-3] :scope :col} ""]]]
       [:tbody
        (for [{:keys [objectID] :as row} data]

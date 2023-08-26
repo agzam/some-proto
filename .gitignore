@@ -24,3 +24,4 @@ pom.xml.asc
 /.cpcache
 resources/public/out/
 resources/creds.gpg
+.dir-locals-2.el

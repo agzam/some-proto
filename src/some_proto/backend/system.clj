@@ -13,7 +13,7 @@
             [reitit.ring.middleware.parameters :as parameters]
             [ring.adapter.jetty :as jetty]
             [some-proto.backend.index-page :refer [index-page]]
-            [some-proto.backend.search-hn :as search-hn])
+            [some-proto.backend.hn-search :as hn-search])
   (:import [org.eclipse.jetty.server Server])
   (:gen-class))
 
@@ -23,7 +23,7 @@
     [["/" {:get {:handler (fn [_]
                             {:status 200
                              :body (index-page)})}}]
-     ["/search-hn" {:get search-hn/handler}]
+     ["/hn-search" {:get hn-search/handler}]
      ["/status"
       {:get {:handler (constantly
                        {:status 200
