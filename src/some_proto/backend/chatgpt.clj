@@ -73,42 +73,50 @@
         ;; TODO: this is not great, need to figure out better way
         max-possible (if hn-comments
                        (quot (- max-tokens template-size) 2)
-                       (- max-tokens template-size))]
-    (format
-     prompt-template
-     (abbreviate page-content max-possible)
-     (when hn-comments
-       (abbreviate hn-comments max-possible)))))
+                       (- max-tokens template-size))
+        fmt-params (->>
+                    (cond-> []
+                      page-content
+                      (conj (abbreviate page-content max-possible))
+
+                      hn-comments
+                      (conj (abbreviate hn-comments max-possible)))
+                    (remove nil?))]
+    (apply format prompt-template fmt-params)))
+
 
 (defn make-summary
   [{:keys [objectID
            url
            title
            num_comments]}]
-  (let [page-content (fetch-page-content url)
+  (let [page-content (when url (fetch-page-content url))
         comments? (< 2 num_comments)
-        hn-comments (when comments?
-                      (fetch-page-content
-                       (format
-                        "https://news.ycombinator.com/item?id=%s" objectID)))
-        prompt-template (str
-                         "Summarize information for the page: "
-                         url
-                         "Based on the title of the page: "
-                         title
-                         " and its content:\n"
-                         "--- begin content ---\n%s"
-                         "\n--- end content ---"
-                         (when comments?
-                           (str "Additionally, summarize the discussion on Hackernews:\n"
-                                "--- begin NH comments---\n%s"
-                                "\n--- end HN comments ---")))
+        hn-url (format "https://news.ycombinator.com/item?id=%s" objectID)
+        hn-comments (when comments? (fetch-page-content hn-url))
+        prompt-template (cond-> ""
+                          url (str
+                               "Summarize information for the page: "
+                               url
+                               "Based on the title of the page: "
+                               title
+                               " and its content:\n"
+                               "--- begin content ---\n%s"
+                               "\n--- end content ---\n")
+                          (and url comments?)
+                          (str "Also, ")
+                          comments?
+                          (str "Summarize the discussion on Hackernews: "
+                               hn-url " \n"
+                               "using the page content:\n"
+                               "--- begin NH comments---\n%s"
+                               "\n--- end HN comments ---\n")
+                          url (str "place the HN summary in a separate paragraph."))
         final-prompt (trim-tokens
                       3500
                       prompt-template
                       page-content
-                      (when comments?
-                        hn-comments))]
+                      hn-comments)]
     (send final-prompt)))
 
 (comment

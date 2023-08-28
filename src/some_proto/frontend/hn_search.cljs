@@ -13,15 +13,12 @@
 
 (reg-event-fx ::hn-search
   (fn [{:keys [db]} [_ val]]
-    (cond-> {:db (assoc db ::current-search-term val
-                        ::hn-data nil)}
-
-      (not (str/blank? val))
-      (merge
-       {:http-xhrio+ {:uri "/hn-search"
-                      :params {:term val}
-                      :on-failure [::hn-search-failure]
-                      :on-success [::hn-search-success]}}))))
+    {:db (assoc db ::current-search-term val
+                ::hn-data nil)
+     :http-xhrio+ {:uri "/hn-search"
+                   :params {:term val}
+                   :on-failure [::hn-search-failure]
+                   :on-success [::hn-search-success]}}))
 
 (reg-event-db ::hn-search-success
   (fn [db [_ data]]
@@ -53,7 +50,7 @@
 (reg-sub ::highlighted-row #(get % ::highlighted-row))
 (reg-sub ::current-summary #(get % ::current-summary))
 
-(defn title []
+(defn page-title []
   [:h1 {:class '[m-20]}
    "Hackernews search"])
 
@@ -112,10 +109,10 @@
   (let [{:keys [summary
                 objectID]} @(subscribe [::current-summary])]
     (when (= currentID objectID)
-     [:tr
-      [:td {:class '[px-6 py-4]
-            :col-span 4}
-       [:h2 summary]]])))
+      [:tr
+       [:td {:class '[px-6 py-4]
+             :col-span 4}
+        [:h2 summary]]])))
 
 (defn hn-data-row [{:keys [title
                            url
@@ -170,7 +167,9 @@
          [hn-data-row row])]]]))
 
 (defn view []
-  [:div
-   [title]
-   [search-bar]
-   [results-table]])
+  (dispatch [::hn-search])
+  (fn []
+    [:div
+     [page-title]
+     [search-bar]
+     [results-table]]))
