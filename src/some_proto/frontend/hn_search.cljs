@@ -27,28 +27,35 @@
 (reg-sub ::hn-data #(get % ::hn-data))
 
 (reg-event-fx ::make-summary
-  (fn [{:keys [db]} [_ {:keys [objectID] :as hn-item}]]
-    {:db (assoc db ::highlighted-row objectID)
-     :http-xhrio+ {:method :post
-                   :uri "/make-summary"
-                   :params {:hn-item hn-item}
-                   :on-failure [::make-summary-failure]
-                   :on-success [::make-summary-success]}}))
+  [(inject-cofx ::inject/sub [::summaries])]
+  (fn [{:keys [db ::summaries]} [_ {:keys [objectID] :as hn-item}]]
+    (cond-> {:db (assoc db ::highlighted-row objectID)}
+      (nil? (get summaries objectID))
+      (merge
+       {:http-xhrio+ {:method :post
+                      :uri "/make-summary"
+                      :params {:hn-item hn-item}
+                      :on-failure [::make-summary-failure]
+                      :on-success [::make-summary-success]}}))))
 
 (reg-event-db ::make-summary-failure
   (fn [db [_ data]]
-    (js-debugger)
     (dissoc db ::highlighted-row)))
 
 (reg-event-db ::make-summary-success
   (fn [db [_ {:keys [summary objectID]}]]
-    (-> db (dissoc ::highlighted-row)
-        (assoc ::current-summary
-               {:objectID objectID
-                :summary summary}))))
+    (-> db
+        (assoc-in [::summaries objectID]
+                  summary))))
 
 (reg-sub ::highlighted-row #(get % ::highlighted-row))
-(reg-sub ::current-summary #(get % ::current-summary))
+
+(reg-sub ::summaries #(get % ::summaries))
+
+(reg-sub ::summary
+  :<- [::summaries]
+  (fn [summaries [_ objectID]]
+    (get summaries objectID)))
 
 (defn page-title []
   [:h1 {:class '[m-20]}
@@ -106,9 +113,9 @@
    [icons/hyperlink {:width 16}]])
 
 (defn summary-card [currentID]
-  (let [{:keys [summary
-                objectID]} @(subscribe [::current-summary])]
-    (when (= currentID objectID)
+  (let [summary @(subscribe [::summary currentID])
+        hl-row-id @(subscribe [::highlighted-row])]
+    (when (= currentID hl-row-id)
       [:tr
        [:td {:class '[px-6 py-4]
              :col-span 4}
@@ -120,8 +127,10 @@
                            created_at
                            num_comments]
                     :as hn-item}]
-  (let [highlighted? (-> @(subscribe [::highlighted-row])
-                         (= objectID))]
+  (let [summary @(subscribe [::summary objectID])
+        highlighted? (-> @(subscribe [::highlighted-row])
+                         (= objectID)
+                         (and (nil? summary)))]
     [:<>
      [:tr {:class (cond-> '[bg-white border-b]
                     highlighted?
