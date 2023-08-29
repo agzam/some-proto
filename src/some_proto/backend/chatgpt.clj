@@ -95,15 +95,15 @@
         hn-url (format "https://news.ycombinator.com/item?id=%s" objectID)
         hn-comments (when comments? (fetch-page-content hn-url))
         prompt-template (cond-> ""
-                          url (str
-                               "Summarize information for the page: "
-                               url
-                               "Based on the title of the page: "
-                               title
-                               " and its content:\n"
-                               "--- begin content ---\n%s"
-                               "\n--- end content ---\n")
-                          (and url comments?)
+                          page-content (str
+                                        "Summarize information for the page: "
+                                        url
+                                        "Based on the title of the page: "
+                                        title
+                                        " and its content:\n"
+                                        "--- begin content ---\n%s"
+                                        "\n--- end content ---\n")
+                          (and page-content hn-comments)
                           (str "Also, ")
                           comments?
                           (str "Summarize the discussion on Hackernews: "
