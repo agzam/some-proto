@@ -108,9 +108,10 @@
    [icons/hackernews {:width 32}]])
 
 (defn url-btn [url]
-  [:a {:href url
-       :target :_blank}
-   [icons/hyperlink {:width 16}]])
+  (when (seq url)
+    [:a {:href url
+         :target :_blank}
+     [icons/hyperlink {:width 16}]]))
 
 (defn summary-card [currentID]
   (let [summary @(subscribe [::summary currentID])
