@@ -1,4 +1,4 @@
-{:deps true
+{:deps {:aliases [:frontend :dev]}
  :builds
  {:app {:output-dir "resources/public/out"
         :asset-path "out"
@@ -7,5 +7,7 @@
         :devtools
         {:after-load some-proto.frontend.app/re-render
          :repl-init-ns some-proto.frontend.app}
-        :dev {}}}
+        :dev {}}
+  :test {:target :karma
+         :output-to "resources/public/out/test.js"}}
  :nrepl {:port 8777}}

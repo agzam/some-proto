@@ -5,7 +5,7 @@
                                  reg-event-fx
                                  reg-fx
                                  reg-sub]]
-   [reitit.coercion.schema]
+   #_[reitit.coercion.schema]
    [reitit.frontend]
    [reitit.frontend.controllers :as rfc]
    [reitit.frontend.easy :as rfe]
@@ -35,7 +35,7 @@
 (def router
   (reitit.frontend/router
    routes
-   {:data {:coercion reitit.coercion.schema/coercion}}))
+   #_{:data {:coercion reitit.coercion.schema/coercion}}))
 
 (defn on-navigate [new-match]
   (when new-match
