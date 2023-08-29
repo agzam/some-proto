@@ -20,3 +20,14 @@ jobs:
         with:
           skip-nodejs: yes
       - run: clojure -M:backend:test
+
+  front-end-tests:
+    name: 'Run front-end tests'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - uses: ./.github/deps
+      - name: 'Compiling source for tests'
+        run: npx shadow-cljs compile :test
+      - name: 'Testing with Karma'
+        run: npx karma start --single-run

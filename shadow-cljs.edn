@@ -1,4 +1,4 @@
-{:deps {:aliases [:frontend :dev]}
+{:deps {:aliases [:frontend :dev :test-cljs]}
  :builds
  {:app {:output-dir "resources/public/out"
         :asset-path "out"
