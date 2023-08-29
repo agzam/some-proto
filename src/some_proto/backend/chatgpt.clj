@@ -111,19 +111,26 @@
                                "using the page content:\n"
                                "--- begin NH comments---\n%s"
                                "\n--- end HN comments ---\n")
-                          url (str "place the HN summary in a separate paragraph."))
+                          page-content (str "place the HN summary in a separate paragraph."))
         final-prompt (trim-tokens
-                      3500
+                      ;; OpenAI's token counter is weird and forces me to use smaller number here
+                      3100
                       prompt-template
                       page-content
                       hn-comments)]
-    (send final-prompt)))
+    (if (or page-content hn-comments)
+      (send final-prompt)
+      "")))
 
 (comment
   (make-summary
-   {:objectID "37268750",
-    :title "Crypto Startup Bankrupt After Losing Password to $38.9M Crypto Wallet",
-    :url "https://www.404media.co/crypto-startup-prime-trust-files-for-bankruptcy-after-losing-password-to-38-9-million-crypto-wallet/",
-    :num_comments 5,
-    :created_at "2023-08-26T00:35:06.000Z"}))
+   {:objectID "37296400",
+    :title "Optimize Java to C string conversion by avoiding double copy"
+    :url "https://github.com/openjdk/panama-foreign/pull/875",
+    :num_comments 0,
+    :created_at "2023-08-26T00:35:06.000Z"})
 
+  (make-summary
+   {:objectID "37299856"
+    :title "MMLU Benchmark Broken"
+    :url "https://www.youtube.com/null"}))

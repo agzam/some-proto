@@ -22,6 +22,14 @@
       nil)))
 
 
-(fetch-page-content
-"https://www.thelancet.com/article/S0140-6736(22)02465-5/fulltext"
- )
+
+(comment
+  (fetch-page-content
+   "https://www.thelancet.com/article/S0140-6736(22)02465-5/fulltext"
+   )
+  (fetch-page-content
+   "https://cacm.acm.org/news/275841-behind-the-ai-boom-an-army-of-overseas-workers-in-digital-sweatshops/fulltext"
+   )
+
+  (fetch-page-content "https://www.youtube.com/null")
+  )
