@@ -1,0 +1,22 @@
+name: 'build & test'
+
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+
+env:
+  DEFAULT_JAVA_VERSION: 18
+  DEFAULT_JAVA_DISTRIBUTION: 'adopt'
+
+jobs:
+  back-end-tests:
+    name: 'Run back-end tests'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - uses: ./.github/deps
+        with:
+          skip-nodejs: yes
+      - run: clojure -M:backend:test

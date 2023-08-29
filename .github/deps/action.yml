@@ -1,0 +1,48 @@
+name: 'Tools & deps'
+description: 'install essential tools and fetch dependencies'
+inputs:
+  skip-nodejs:
+    description: 'skips installing node if = yes'
+    default: 'no'
+runs:
+  using: 'composite'
+  steps:
+    - name: 'checkout'
+      uses: actions/checkout@v3
+
+    - name: 'setup java'
+      uses: actions/setup-java@v3
+      with:
+        distribution: ${{ env.DEFAULT_JAVA_DISTRIBUTION }}
+        java-version: ${{ env.DEFAULT_JAVA_VERSION }}
+        architecture: 'x64'
+        check-latest: true
+    - run: java -version
+      shell: bash
+
+    - name: 'install clojure tools'
+      uses: DeLaGuardo/setup-clojure@5.1
+      with:
+        cli: latest
+    - run: clojure --version
+      shell: bash
+
+    - name: 'cache Clojure dependencies'
+      uses: actions/cache@v3
+      with:
+        path: |
+          ~/.m2/repository
+          ~/.deps.clj
+        key: cljdeps-${{ hashFiles('deps.edn') }}
+        restore-keys: cljdeps-
+
+    - name: 'install NodeJS'
+      if: ${{ inputs.skip-nodejs }} != 'yes'
+      id: setup-node
+      uses: actions/setup-node@v3
+      with:
+        node-version: current
+        cache: 'npm'
+        cache-dependency-path: package-lock.json
+    - run: npm clean-install
+      shell: bash
