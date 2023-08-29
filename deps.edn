@@ -10,7 +10,8 @@
     metosin/reitit {:mvn/version "0.7.0-alpha5"}
     hiccup/hiccup {:mvn/version "2.0.0-RC1"}
     clj-http/clj-http {:mvn/version "3.12.3"}
-    org.jsoup/jsoup {:mvn/version "1.16.1"}}}
+    org.jsoup/jsoup {:mvn/version "1.16.1"}
+    org.clojure/tools.logging {:mvn/version "1.2.4"}}}
 
   :frontend
   {:extra-deps
@@ -27,4 +28,10 @@
     thheller/shadow-cljs {:mvn/version "2.25.3"}}
    :repl-options
    {:nrepl-middleware
-    [shadow.cljs.devtools.server.nrepl/middleware]}}}}
+    [shadow.cljs.devtools.server.nrepl/middleware]}}
+
+  :test {:extra-paths ["test"]
+         :extra-deps
+         {io.github.cognitect-labs/test-runner {:git/tag "v0.5.1" :git/sha "dfb30dd"}}
+         :main-opts ["-m" "cognitect.test-runner"]
+         :exec-fn cognitect.test-runner.api/test}}}
