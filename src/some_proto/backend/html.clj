@@ -1,12 +1,25 @@
 (ns some-proto.backend.html
   (:require
+   [clj-http.client :as client]
    [clojure.pprint]
-   [clj-http.client :as client])
+   [clojure.string :as str]
+   [some-proto.backend.hackernews :as hackernews])
   (:import
    [org.jsoup Jsoup]))
 
-(defn fetch-page-content
-  "Retrieves text content of a page for given url."
+(defmulti fetch-page-content
+  "Not all websites allow straightforward html data scraping. Sometimes we need to
+   dispatch different method to get data."
+  (fn [url]
+    (let [patterns {"https://news.ycombinator.com.*" :hackernews}]
+      (or
+       (->> patterns keys
+            (filter #(re-matches (re-pattern %) url))
+            first
+            (get patterns))
+       :default))))
+
+(defmethod fetch-page-content :default
   [url]
   (try
     (some->
@@ -21,15 +34,28 @@
        (.getMessage e))
       nil)))
 
+(defmethod fetch-page-content :hackernews
+  [url]
+  (hackernews/fetch-discussion-content url))
 
 
-(comment
-  (fetch-page-content
-   "https://www.thelancet.com/article/S0140-6736(22)02465-5/fulltext"
-   )
-  (fetch-page-content
-   "https://cacm.acm.org/news/275841-behind-the-ai-boom-an-army-of-overseas-workers-in-digital-sweatshops/fulltext"
-   )
+(defn gather-page-urls
+  "Scans the given html page url to collect all urls on the page."
+  [url]
+  (some->
+   url
+   (client/get {:content-type :html})
+   :body
+   Jsoup/parse))
 
-  (fetch-page-content "https://www.youtube.com/null")
-  )
+(defn get-title
+  "Returns document.title of a page."
+  [url]
+  (try
+    (->
+     (Jsoup/connect url)
+     (.get)
+     (.title))
+    (catch Exception _
+      nil)))
+

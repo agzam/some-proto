@@ -13,7 +13,7 @@
             [reitit.ring.middleware.parameters :as parameters]
             [ring.adapter.jetty :as jetty]
             [some-proto.backend.chatgpt :as chatgpt]
-            [some-proto.backend.hn-search :as hn-search]
+            [some-proto.backend.hackernews :as hackernews]
             [some-proto.backend.index-page :refer [index-page]])
   (:import [org.eclipse.jetty.server Server])
   (:gen-class))
@@ -24,7 +24,7 @@
     [["/" {:get {:handler (fn [_]
                             {:status 200
                              :body (index-page)})}}]
-     ["/hn-search" {:get hn-search/handler}]
+     ["/hn-search" {:get hackernews/handler}]
      ["/make-summary" {:post
                        (fn [req]
                          (let [{:keys [objectID] :as hn} (get-in req [:body-params :hn-item])]
