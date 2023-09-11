@@ -95,9 +95,10 @@
   "HN API returns text encoded with things like &quot; etc."
   [html] (some-> html Jsoup/parse .body .text))
 
-(defn- cleanup-discussion
-  "Extracts some human readable content out of wacky map created by `retrieve-discussion-content`."
-  [discussion-map]
+(defn cleanup-discussion
+  "Extracts some human readable content out of wacky map created by `retrieve-discussion-content`.
+  nesting in the conversation threat is denoted using special character that can be set using `indent-symbol` string"
+  [discussion-map & {:keys [indent-symbol]}]
   (loop [cs [discussion-map]
          text-str ""]
     (let [{:keys [text
@@ -111,9 +112,9 @@
                    text-str
                    (when text
                      (str
-                      "\n\n"
-                      (apply str (repeat indent "   "))
-                      by ": "
+                      "\n"
+                      (apply str (repeat indent (or indent-symbol "✱")))
+                      " " by ": "
                       (decode-html text))))]
           (recur (concat
                   (vals (apply dissoc current ks))

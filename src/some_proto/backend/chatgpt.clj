@@ -53,16 +53,15 @@
 (defn abbreviate
   "Reduces given text by removing from its end, until it contains no more than max-tokens."
   [text max-tokens]
-  (loop [txt text]
-    (let [tokens (-> (StringTokenizer. txt)
-                     (.countTokens))]
-      (if (<= tokens max-tokens)
-        txt
-        ;; TODO: This is kinda lame, iterate with tokenizer instead, this tranformation is not lossless
-        (let [new-txt (->> (str/split txt #"\W+")
-                           butlast
-                           (str/join " "))]
-          (recur new-txt))))))
+  ;; java.util.StringTokenizer treats space, tab, and newline as delimiters without explicitly limiting the delimiters,
+  ;; the transformation would be lossy, that may confuse chatgpt
+  (let [tokenizer (StringTokenizer. text " ")]
+    (str/join " "
+              (take
+               max-tokens
+               (repeatedly #(try
+                              (.nextToken tokenizer)
+                              (catch Exception e nil)))))))
 
 (defn trim-tokens
   "Number of allowed tokens in the prompt can exceed the max allowed.
@@ -84,53 +83,76 @@
                     (remove nil?))]
     (apply format prompt-template fmt-params)))
 
-
-(defn make-summary
+(defn compose-prompt
+  "For given HN object compose a prompt for summary."
   [{:keys [objectID
            url
            title
            num_comments]}]
   (let [page-content (when url (fetch-page-content url))
-        comments? (< 2 num_comments)
+        ;; makes no sense to analyze the discussion if there just a couple of comments
+        comments? (some->> num_comments (< 2))
         hn-url (format "https://news.ycombinator.com/item?id=%s" objectID)
         hn-comments (when comments? (fetch-page-content hn-url))
         prompt-template (cond-> ""
                           page-content (str
                                         "Summarize information for the page: "
                                         url
-                                        "Based on the title of the page: "
+                                        "\nBased on the title of the page: '"
                                         title
-                                        " and its content:\n"
+                                        "' and its content:\n"
                                         "--- begin content ---\n%s"
                                         "\n--- end content ---\n")
+
                           (and page-content hn-comments)
-                          (str "Also, ")
+                          (str "Also ")
+
                           comments?
-                          (str "Summarize the discussion on Hackernews: "
+                          (str "summarize the discussion on Hackernews: "
                                hn-url " \n"
                                "using the page content:\n"
-                               "--- begin NH comments---\n%s"
-                               "\n--- end HN comments ---\n")
-                          page-content (str "place the HN summary in a separate paragraph."))
+                               "--- begin NH comments---%s"
+                               "\n--- end HN comments ---\n"
+                               "HN summary should be in a separate paragraph."))
         final-prompt (trim-tokens
                       ;; OpenAI's token counter is weird and forces me to use smaller number here
                       3100
                       prompt-template
                       page-content
                       hn-comments)]
-    (if (or page-content hn-comments)
-      (send final-prompt)
-      "")))
+    (when (or page-content hn-comments)
+      final-prompt)))
+
+(defn make-summary
+  [hn-object-map]
+  (some->
+   hn-object-map
+   compose-prompt
+   send))
+
 
 (comment
-  (make-summary
-   {:objectID "37296400",
-    :title "Optimize Java to C string conversion by avoiding double copy"
-    :url "https://github.com/openjdk/panama-foreign/pull/875",
-    :num_comments 0,
-    :created_at "2023-08-26T00:35:06.000Z"})
 
-  (make-summary
+  (spit "./test/some_proto/backend/sample-hn-discussion-thread.txt"
+        (fetch-page-content
+         (format "https://news.ycombinator.com/item?id=%s" 12167622)))
+
+  (compose-prompt
+   {:objectID "12167622",
+    :title "One-sentence proof of Fermat's theorem on sums of two squares"
+    :url "https://fermatslibrary.com/s/a-one-sentence-proof-of-fermats-theorem-on-sums-of-two-squares",
+    :num_comments 45})
+
+  (compose-prompt
    {:objectID "37299856"
     :title "MMLU Benchmark Broken"
-    :url "https://www.youtube.com/null"}))
+    :url "https://www.youtube.com/null"})
+
+  (let [text (compose-prompt
+              {:objectID "37313183"
+               :title "Griffin – A fully-regulated, API-driven bank, with Clojure"
+               :url "https://www.juxt.pro/blog/clojure-in-griffin/"
+               :num_comments 219})
+        tokenizer (StringTokenizer. text)]
+    (.countTokens tokenizer))
+)
