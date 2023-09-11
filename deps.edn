@@ -12,7 +12,8 @@
     hiccup/hiccup {:mvn/version "2.0.0-RC1"}
     clj-http/clj-http {:mvn/version "3.12.3"}
     org.jsoup/jsoup {:mvn/version "1.16.1"}
-    org.clojure/core.async {:mvn/version "1.6.681"}}}
+    org.clojure/core.async {:mvn/version "1.6.681"}
+    io.github.lukaszkorecki/tolkien {:git/tag "v0.1.4" :git/sha "65aeb98"}}}
 
   :frontend
   {:extra-deps

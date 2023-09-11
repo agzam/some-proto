@@ -76,11 +76,11 @@
     ;; retrive discussion thread nodes, starting with the root story in an async pipeline recursively, feeding child
     ;; nodes (if any) into the input channel, forcing it to fetch the content for every sub-node
     (a/put! in-ch {:story-id story-id :parents []})
-    (a/pipeline-async 10 out-ch fetch in-ch)
+    (a/pipeline-async 20 out-ch fetch in-ch)
 
     ;; since the sub-nodes are getting fetched in parallel, the resulting list of nodes won't be sorted. let's push them
     ;; into a map where we can maintain the hierarchy
-    (let [closer (a/timeout 5000)]
+    (let [closer (a/timeout 3500)]
       (a/go-loop [discussion {}]
         (let [[val ch] (a/alts! [out-ch closer])]
           (if (or (nil? val) (= ch closer))

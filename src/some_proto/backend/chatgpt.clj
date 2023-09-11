@@ -6,11 +6,11 @@
    [clojure.java.shell :refer [sh]]
    [clojure.string :as str]
    [integrant.core :as ig]
-   [some-proto.backend.html :refer [fetch-page-content]])
+   [some-proto.backend.html :refer [fetch-page-content]]
+   [tolkien.core :as token])
   (:import [java.util StringTokenizer]))
 
-(def auth-key (atom nil))
-(def openai-parameters (atom nil))
+(def ^:private openai-parameters* (atom nil))
 
 (defn- decrypt-key []
   (let [cmd ["gpg2" "-q" "--for-your-eyes-only"
@@ -21,21 +21,29 @@
      :out
      edn/read-string
      :open-ai-key
-     (reset! auth-key))))
+     (swap! openai-parameters* assoc :api-token))))
+
+(defn openai-parameters
+  "getter/setter for openai parameters."
+  ([params]
+   (reset! openai-parameters* params)
+   (when-not (contains? params :api-token)
+     (decrypt-key))
+   (openai-parameters))
+  ([]
+   (or @openai-parameters*
+       {:model "gpt-3.5-turbo"
+        :temperature 0.8
+        :max-tokens 4096})))
 
 (defmethod ig/init-key ::parameters [_ opts]
-  (reset! openai-parameters opts))
+  (openai-parameters opts))
 
 (defmethod ig/halt-key! ::parameters [_ _]
-  (reset! openai-parameters nil)
-  (reset! auth-key nil))
+  (swap! openai-parameters* dissoc :auth-key))
 
 (defn send [content]
-  (when-not @auth-key
-    (decrypt-key))
-  (let [params (or @openai-parameters
-                   {:model "gpt-3.5-turbo"
-                    :temperature 0.8})
+  (let [{:keys [api-token] :as params} (openai-parameters)
         res
         (client/post
          "https://api.openai.com/v1/chat/completions"
@@ -43,43 +51,48 @@
           :as :json
           :form-params
           (merge
-           params
+           (select-keys params [:model :temperature])
            {:messages [{:role :user
                         :content content}]})
-          :oauth-token @auth-key})]
+          :oauth-token api-token})]
     (some->> res :body :choices first :message :content)))
 
+(defn- remove-last-word
+  "Removes last word from text.
+  Unlike splitting the text into words and then rejoining, this should keep indentations, tabs and linebreaks intact."
+  [s]
+  (let [last-delim-idx (str/last-index-of s " ")]
+    (if last-delim-idx (subs s 0 last-delim-idx) "")))
 
 (defn abbreviate
   "Reduces given text by removing from its end, until it contains no more than max-tokens."
   [text max-tokens]
-  ;; java.util.StringTokenizer treats space, tab, and newline as delimiters without explicitly limiting the delimiters,
-  ;; the transformation would be lossy, that may confuse chatgpt
-  (let [tokenizer (StringTokenizer. text " ")]
-    (str/join " "
-              (take
-               max-tokens
-               (repeatedly #(try
-                              (.nextToken tokenizer)
-                              (catch Exception e nil)))))))
+  (let [{:keys [model]} (openai-parameters)
+        cur-text (atom text)]
+    (while (< max-tokens (token/count-tokens model @cur-text))
+      (swap! cur-text remove-last-word))
+    @cur-text))
 
 (defn trim-tokens
   "Number of allowed tokens in the prompt can exceed the max allowed.
   Let's try to reduce number of tokens by reducing content to be sent with the prompt."
-  [max-tokens prompt-template page-content hn-comments]
-  (let [template-size (-> (StringTokenizer. prompt-template)
-                          (.countTokens))
+  [prompt-template page-content hn-comments]
+  (let [{:keys [model max-tokens]} (openai-parameters)
+        template-size (token/count-tokens model prompt-template)
+        ;; OpenAI max tokens counted for both input and output, we can use some percentage of max available and leave
+        ;; the rest for the output. If we consume too much on the input. The summary will cut too short
         ;; TODO: this is not great, need to figure out better way
-        max-possible (if hn-comments
-                       (quot (- max-tokens template-size) 2)
-                       (- max-tokens template-size))
+        max-input-tokens (* max-tokens 0.7)
+        max-page-tokens (cond-> (- max-input-tokens template-size)
+                          hn-comments (*  0.5))
+        max-hn-tokens (- max-input-tokens max-page-tokens)
         fmt-params (->>
                     (cond-> []
                       page-content
-                      (conj (abbreviate page-content max-possible))
+                      (conj (abbreviate page-content max-page-tokens))
 
                       hn-comments
-                      (conj (abbreviate hn-comments max-possible)))
+                      (conj (abbreviate hn-comments max-hn-tokens)))
                     (remove nil?))]
     (apply format prompt-template fmt-params)))
 
@@ -112,11 +125,11 @@
                                hn-url " \n"
                                "using the page content:\n"
                                "--- begin NH comments---%s"
-                               "\n--- end HN comments ---\n"
-                               "HN summary should be in a separate paragraph."))
+                               "\n--- end HN comments ---\n")
+
+                          :always
+                          (str " Use all remaining tokens for the output."))
         final-prompt (trim-tokens
-                      ;; OpenAI's token counter is weird and forces me to use smaller number here
-                      3100
                       prompt-template
                       page-content
                       hn-comments)]
@@ -153,6 +166,19 @@
                :title "Griffin – A fully-regulated, API-driven bank, with Clojure"
                :url "https://www.juxt.pro/blog/clojure-in-griffin/"
                :num_comments 219})
-        tokenizer (StringTokenizer. text)]
-    (.countTokens tokenizer))
-)
+        {:keys [model]} (openai-parameters)]
+    (token/count-tokens model text))
+
+  (fetch-page-content
+   (format "https://news.ycombinator.com/item?id=%s" 37313183)
+   )
+
+  (make-summary
+   {:objectID "37313183"
+    :title "Griffin – A fully-regulated, API-driven bank, with Clojure"
+    :url "https://www.juxt.pro/blog/clojure-in-griffin/"
+    :num_comments 219}
+   )
+
+
+  )
