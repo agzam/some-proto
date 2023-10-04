@@ -8,7 +8,8 @@
    [integrant.core :as ig]
    [integrant.repl :as ig-repl :refer [go reset halt]]
    [shadow.cljs.devtools.api :as shadow]
-   [shadow.cljs.devtools.server :as server]))
+   [shadow.cljs.devtools.server :as server]
+   [some-proto.backend.utils :as utils]))
 
 (defn- shadow-cljs-watch [build-id]
   (println "starting shadow-cljs server & watch")
@@ -34,10 +35,20 @@
                             (shell/sh "bash" "-c")
                             :out str/split-lines
                             (remove str/blank?)
-                            seq boolean)]
+                            seq boolean)
+        ;; make sure postcss process starts at the project root dir
+        project-dir (io/file (System/getProperty "user.dir"))
+        node-bin (utils/get-nodejs-bin-dir)
+        ps-builder (ProcessBuilder.
+                    [(str node-bin "/npm") "run-script" "postcss:watch"])
+        env (.environment ps-builder)]
     (when-not watch-running?
       (println "starting postcss watch process...")
-      (-> (ProcessBuilder. ["npm" "run-script" "postcss:watch"]) .inheritIO .start))))
+      (.put env "PATH" (str node-bin ":" (.get env "PATH")))
+      (.get env "PATH")
+      (.directory ps-builder project-dir)
+      (-> ps-builder .inheritIO .start))))
+
 
 (defmethod ig/halt-key! ::postcss-watch [_ proc]
   (when proc
