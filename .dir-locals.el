@@ -6,8 +6,12 @@
                    (make-variable-buffer-local 'cider-custom-cljs-repl-init-form)
                    (setq cider-custom-cljs-repl-init-form "(user/cljs-repl)")
                    (make-variable-buffer-local 'cider-jack-in-nrepl-middlewares)
-                   (add-to-list 'cider-jack-in-nrepl-middlewares
-                                "shadow.cljs.devtools.server.nrepl/middleware")))))
+                   (add-to-list
+                    'cider-jack-in-nrepl-middlewares
+                    "shadow.cljs.devtools.server.nrepl/middleware")
+                   (add-to-list
+                    'cider-jack-in-nrepl-middlewares
+                    "flow-storm.nrepl.middleware/wrap-flow-storm")))))
  (clojure-mode . ((eval . (progn
                             (define-clojure-indent
                              ;; latte.core for Cypress tests
